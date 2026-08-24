@@ -35,6 +35,15 @@ wrong.
 One question fell below the confidence floor, took the retry edge, went from 4
 sources to 8, and the second draft covered everything.
 
+`/chat` measured separately over 7 turns in one session on `claude-haiku-4-5`:
+**1.5s mean, 0.97s median**, range 0.63-3.31s. The slowest turn was the first
+one, which is also the one that pulled a full report out of memory; later turns
+answer from context that's already assembled. One of seven crossed 3 seconds, so
+treat the mean as the honest figure rather than a ceiling.
+
+A full `/research` run through the API took 27s end to end, including writing
+the report, its 5 sources and 7 claim verdicts to the database.
+
 ## Running it
 
 ```bash
