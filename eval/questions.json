@@ -1,0 +1,52 @@
+[
+  {
+    "id": "slo-latency",
+    "question": "What are the tracking API's latency and availability SLOs, and what happens if they are breached?",
+    "must_include": ["250", "99.9", "freeze"]
+  },
+  {
+    "id": "sev1-count",
+    "question": "How many Sev-1 incidents did Northwind have in 2024 and which service caused most of them?",
+    "must_include": ["seven", "scan-ingest"]
+  },
+  {
+    "id": "billing-incident",
+    "question": "What went wrong in the November 2024 billing incident and how many customers were affected?",
+    "must_include": ["1,340", "idempotency"]
+  },
+  {
+    "id": "canary",
+    "question": "Describe the production canary rollout and the conditions that abort it.",
+    "must_include": ["5%", "10 minutes", "1%", "400"]
+  },
+  {
+    "id": "freeze-window",
+    "question": "When is the deploy freeze and what can still be shipped during it?",
+    "must_include": ["1 December", "5 January", "Sev-1"]
+  },
+  {
+    "id": "retention-contact",
+    "question": "How long are recipient contact details kept, and how are deletion requests handled given the tax obligation?",
+    "must_include": ["90 days", "7 year", "redact"]
+  },
+  {
+    "id": "eta-cache",
+    "question": "Why is the ETA response cached for five minutes rather than something shorter?",
+    "must_include": ["90 second", "solver"]
+  },
+  {
+    "id": "ownership",
+    "question": "Which team owns the routing engine, and which platform service is owned outside the platform org?",
+    "must_include": ["Network", "billing-worker", "Finance"]
+  },
+  {
+    "id": "peak-traffic",
+    "question": "What is peak versus baseline request volume on the public APIs?",
+    "must_include": ["4,200", "900"]
+  },
+  {
+    "id": "partner-limits",
+    "question": "What rate limit applies to partner API keys and what data is withheld from partner-carrier shipments?",
+    "must_include": ["600", "depot", "country"]
+  }
+]

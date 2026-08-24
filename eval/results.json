@@ -1,0 +1,112 @@
+{
+  "summary": {
+    "questions": 10,
+    "facts_checked": 27,
+    "facts_found": 25,
+    "accuracy": 0.9259,
+    "median_seconds": 23.0,
+    "mean_confidence": 0.968,
+    "spend": {
+      "calls": 55,
+      "input_tokens": 75213,
+      "output_tokens": 29460,
+      "cost_usd": 0.445
+    },
+    "stopped_early": null
+  },
+  "results": [
+    {
+      "id": "slo-latency",
+      "seconds": 23.5,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 5,
+      "missed": [],
+      "answer": "The tracking API is governed by three rolling 28-day SLOs: 99.9% availability (non-5xx responses), p99 latency under 250 ms and p50 under 40 ms, and a separate freshness target of 95% of depot scans queryable within 30 seconds of ingest [1].\n\nIf either the availability or latency SLO \u2014 or the freshness SLO \u2014 is breached for two consecutive 28-day windows, a feature freeze is triggered on the owning team until the error budget recovers [1]. The tracking API is owned by the Platform team, so that team would be subject to the freeze [4].\n\nAn example from incident history shows how these SLOs are applied in practice: during INC-2024-03, a partition rebalance stalled the scan ingest consumer, causing 46 minutes of lag. This made tracking data stale, but the API itself remained available, so it counted against the freshness SLO rather than the availability SLO [2]. The sources do not indicate whether this single incident led to two consecutive breached windows or actually triggered a feature freeze \u2014 only the general policy and this one incident are described [1][2].\n\nThe sources do not provide further detail on what a \"feature freeze\" entails operationally (e.g., duration, exceptions, or approval process to lift it), nor do they specify how latency is monitored or alerted on outside of the freshness-related lag alert mentioned in the incident review [1][2]."
+    },
+    {
+      "id": "sev1-count",
+      "seconds": 64.7,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 4,
+      "missed": [],
+      "answer": "Northwind had seven Sev-1 incidents in 2024, and `scan-ingest` was the service responsible for the most of them, accounting for four of the seven [1].\n\nThis is down from eleven Sev-1 incidents in 2023, and the total customer-facing downtime across all seven 2024 incidents was 3 hours 41 minutes [1].\n\nOne documented example involving `scan-ingest` is INC-2024-03, where a partition rebalance stalled on 29 March, causing consumer lag to reach 46 minutes [2]. Notably, this incident did not count against the availability SLO since the API remained available; instead, it breached the freshness SLO because tracking data went stale [2]. The fix involved raising the consumer group's session timeout and adding a lag alert at the 5-minute mark [2].\n\nThe sources do not specify which service or services were responsible for the remaining three Sev-1 incidents in 2024, aside from noting that one incident, INC-2024-11, involved `billing-worker` and was the only 2024 incident with direct financial impact, caused by a reprocessing job during a rolled-back deployment that lacked an idempotency key, resulting in 1,340 customers being double-invoiced [4]. It is not stated in the sources whether this billing incident was classified as Sev-1."
+    },
+    {
+      "id": "billing-incident",
+      "seconds": 20.9,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 5,
+      "missed": [],
+      "answer": "The November 2024 billing incident (INC-2024-11) was caused by the `billing-worker` service reprocessing a night's worth of shipments after a failed deployment was rolled back mid-run, and it resulted in 1,340 customers being invoiced twice [1].\n\n**Root cause:** On 2 November, a deploy failure triggered a rollback while `billing-worker` was mid-run, causing it to reprocess shipments that had already been billed [1]. The underlying issue was that the job had no idempotency key, meaning it had no way to detect that it was processing data it had already handled, so it charged customers a second time for the same shipments [1].\n\n**Impact:** 1,340 customers were double-charged as a result [1]. This was the only incident in 2024 with direct financial impact on customers [1]. All erroneous charges were reversed within 48 hours of the incident [1].\n\nThe sources do not provide further detail on remediation steps beyond the charge reversals (e.g., whether an idempotency key was subsequently added to `billing-worker`), so no additional information can be stated on that point."
+    },
+    {
+      "id": "canary",
+      "seconds": 22.5,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 5,
+      "missed": [],
+      "answer": "Production rollouts follow a staged canary process that automatically aborts if error rates or latency exceed defined thresholds [1].\n\n**Rollout stages:** After an engineer manually promotes a staging build via the deploy dashboard, the canary proceeds in three phases: 5% of traffic for 10 minutes, then 50% of traffic for 10 minutes, then full rollout [1]. This manual promotion step follows an automated pipeline in which every merge to `main` builds a container image, runs the test suite, and deploys to staging [1].\n\n**Abort conditions:** The canary aborts automatically if either of two conditions is met on the new pods: the 5xx error rate exceeds 1%, or p99 latency exceeds 400 ms [1].\n\n**Related recovery process:** If a rollback is needed, it is performed by redeploying the previous image tag from the dashboard, which takes about 90 seconds [4]. Database migrations are not automatically rolled back, so migrations must remain backward compatible with the previous release \u2014 a requirement enforced by a CI check that rejects destructive DDL in the same release as the code that stops using the affected column [4].\n\nThe sources do not specify what happens after an abort (e.g., whether traffic reverts automatically or whether an engineer must intervene), nor do they state whether the abort thresholds apply differently across the three traffic stages."
+    },
+    {
+      "id": "freeze-window",
+      "seconds": 16.7,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 5,
+      "missed": [
+        "1 December",
+        "5 January"
+      ],
+      "answer": "The deploy freeze runs from December 1 to January 5 [1]. During this hard freeze, only changes tied to an active Sev-1 or Sev-2 incident are allowed to be promoted, and even those require explicit sign-off from the on-call lead [1]. Outside of that narrow exception, no other deployments should ship during the freeze window [1].\n\nThe sources do not provide additional detail on the freeze process beyond this, such as how sign-off is requested or whether canary rollout rules [2] still apply to freeze-period emergency deploys."
+    },
+    {
+      "id": "retention-contact",
+      "seconds": 33.3,
+      "self_reported_confidence": 0.875,
+      "revisions": 0,
+      "sources": 4,
+      "missed": [],
+      "answer": "Recipient contact details are retained for 90 days after the final delivery scan [1]. However, this standard retention window interacts with a separate, longer requirement for shipment records overall, which must be kept for 7 years due to tax rules in the operating countries [1].\n\n**Deletion request handling**\n\nWhen a deletion request is submitted through the support tool, it is processed nightly by the `privacy-worker` [2]. Because shipment records cannot be deleted before the 7-year mark due to the tax retention obligation, the system does not delete the entire shipment row [2]. Instead, the worker redacts the recipient's name, address, and contact fields in place, while leaving the shipment row itself intact [2]. This approach allows the company to honor deletion requests for personal contact information while still satisfying the legal requirement to retain the underlying shipment record for tax purposes [2].\n\nThe service level agreement for processing a deletion request is 14 days, though in practice the nightly job typically clears the queue within 24 hours [2].\n\n**Summary**\n\nIn short, recipient contact details have a short standard retention period (90 days post-delivery) [1], but if a deletion request is made before that window naturally expires \u2014 or if the data is tied to a shipment still within its 7-year tax retention period \u2014 the contact fields are redacted from the shipment record rather than the record being deleted outright [2]. This ensures compliance with tax law while still fulfilling the substance of a deletion request for personal contact data [2].\n\nThe sources do not specify what happens to recipient contact details if a deletion request is *not* submitted \u2014 presumably they age out per the 90-day retention rule [1] \u2014 nor do they clarify whether redaction is also applied automatically at the 90-day mark for records still within the 7-year shipment retention window, or whether that automatic process differs from the deletion-request-triggered redaction [1][2]."
+    },
+    {
+      "id": "eta-cache",
+      "seconds": 102.7,
+      "self_reported_confidence": 0.8,
+      "revisions": 1,
+      "sources": 8,
+      "missed": [],
+      "answer": "The ETA response is cached for five minutes because the underlying routing solver that produces the estimates only republishes new numbers every 90 seconds, and this is stated directly as the reason in the tracking API reference [1]. Since the routing solver is the sole source of updated ETA values and it runs on that fixed 90-second cycle [7], caching the response for a duration longer than the solver's update interval means the cache is not serving noticeably stale data relative to what the backend would return anyway [1].\n\nBy contrast, scan history is cached for only 20 seconds [1]. The tracking API reference does not explain why the scan history TTL is shorter, nor does it state that scan data is refreshed more frequently at the source than ETA data \u2014 it only specifies the two cache durations and gives the 90-second solver cadence as the explicit rationale for the five-minute ETA figure [1]. Any further comparison between the two caches' underlying refresh rates would go beyond what the source supports.\n\nThe ETA cache is also keyed on tracking number alone, with no variation per caller [1]. This is a separate detail about cache key design rather than a stated justification for the five-minute duration, but it confirms that the same cached ETA is served to all requesters for a given tracking number, consistent with a cache duration set by backend update frequency rather than by request-level factors [1].\n\nNo other source in this set addresses ETA caching or the reasoning behind its TTL. The tracking API's SLOs \u2014 availability, latency, and freshness \u2014 are documented separately [4], but nothing in that source or elsewhere connects those SLOs to the design of the ETA cache duration, so no claim can be made linking them. Likewise, incident history describes a freshness SLO breach caused by scan ingest lag [3], but this concerns scan data staleness during a specific incident, not the ETA cache policy, and the source does not draw a connection between the two.\n\nIn short, the only supported explanation for the five-minute ETA cache window is that it matches (and slightly exceeds) the 90-second cycle on which the routing solver publishes new estimates, making a much shorter cache interval unnecessary since the solver itself would not have produced a new value in that time [1][7]."
+    },
+    {
+      "id": "ownership",
+      "seconds": 19.5,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 5,
+      "missed": [],
+      "answer": "The Network team owns `routing-engine`, and `billing-worker` is the platform service owned outside the platform org [1].\n\nSpecifically, ownership of the six platform services is split across three teams: the Platform team owns `booking-api`, `tracking-api`, and `notify`; the Network team owns `routing-engine` and `scan-ingest`; and `billing-worker` is owned by Finance Engineering, a group that sits outside the platform org [1]. The `routing-engine` service itself is responsible for assigning each parcel to a route and depot sequence, and it is distinct among the six services in that it runs on a GPU node pool using a solver that executes every 90 seconds [2].\n\nSo to directly answer both parts of the question: routing is owned by the Network team, not the Platform team, while billing is the one service whose ownership lives entirely outside the platform org, under Finance Engineering [1]."
+    },
+    {
+      "id": "peak-traffic",
+      "seconds": 33.4,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 6,
+      "missed": [],
+      "answer": "Peak request volume across Northwind's public APIs is 4,200 requests per second, while baseline runs roughly 900 requests per second \u2014 a peak-to-baseline ratio of about 4.7x [1].\n\n**Timing of peak load**\n\nThe 4,200 requests-per-second peak is reached during the two weeks before Christmas, reflecting seasonal demand on the platform [1]. Outside of this window, request volume settles back to the baseline of approximately 900 requests per second [1].\n\n**Separate ingestion traffic**\n\nScan ingestion, which is distinct from the public API request traffic, does not follow the same peak/baseline pattern. It remains steady at approximately 1,100 events per second throughout the year, regardless of the seasonal peak seen in public API traffic [1].\n\n**Context on rate limiting**\n\nWhile the platform-wide peak and baseline figures are aggregate numbers, individual API consumers face their own limits: partner keys accessing the Tracking API's endpoints are rate limited to 600 requests per minute, whereas internal keys are not rate limited but are restricted by network policy to the cluster [5]. This distinction matters because the 4,200 requests-per-second peak represents total traffic across the public APIs, not the maximum any single partner could drive against a rate-limited endpoint [1][5].\n\n**What the sources don't cover**\n\nThe sources do not break down the 4,200 request-per-second peak or 900 request-per-second baseline by individual service (e.g., `booking-api` versus `tracking-api`), so it isn't possible to state which specific public API contributes most to peak load [1][2]. The sources also do not specify whether the Easter scan backlog incident coincided with any notable spike in public API request volume, since that incident concerned scan ingestion consumer lag rather than API request rates [4]."
+    },
+    {
+      "id": "partner-limits",
+      "seconds": 15.7,
+      "self_reported_confidence": 1.0,
+      "revisions": 0,
+      "sources": 3,
+      "missed": [],
+      "answer": "Partner API keys are rate limited to 600 requests per minute, while internal keys have no rate limit but are restricted by network policy to the cluster [1]. For partner-carrier shipments, the API withholds depot names, exposing only the country of transit for parcels moving through partner carriers [3]. This restriction is contractual rather than technical, and it applies to roughly 8% of international shipments [3].\n\nFor context, the tracking functionality resides in the `tracking-api` service, described as a read-only source for scan history and delivery estimates within the broader six-service Northwind Logistics platform [2]. Both key types authenticate via the `X-Northwind-Key` header when calling endpoints such as `GET /v1/parcels/{tracking_number}` (status and scan history) and `GET /v1/parcels/{tracking_number}/eta` (predicted delivery window) [1]."
+    }
+  ]
+}
